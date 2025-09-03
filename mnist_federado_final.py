@@ -4,14 +4,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset, Subset
-import flwr as fl
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict, OrderedDict
 import random
-from typing import List, Tuple
-
+import task_similarity
+import copy
 import seaborn as sns
+
+from collections import defaultdict, OrderedDict
+from typing import List, Tuple
 
 from flwr.common import Context, Metrics
 from flwr.client import Client, ClientApp, NumPyClient
@@ -19,9 +20,10 @@ from flwr.server import ServerApp, ServerConfig, ServerAppComponents
 from flwr.server.strategy import FedAvg
 from flwr.simulation import run_simulation
 
-import task_similarity
 from task2vec import Task2Vec
 from models import get_model
+
+
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -30,9 +32,7 @@ EPOCHS = 3
 ROUNDS = 10  # Reduzido para teste
 NUM_CLIENTS = 10
 SEED = 42
-# torch.manual_seed(SEED)
-# np.random.seed(SEED)
-# random.seed(SEED)
+
 
 # CNN para MNIST (1 canal)
 class CNN(nn.Module):
@@ -102,13 +102,12 @@ def partition_data(dataset, mode="iid", noise_ratio=0.0, test_id=0):
     
     class_indices = {i: [] for i in range(10)}
     
-    # CORREÇÃO: Converter label para int se necessário
     for idx, (_, label) in enumerate(dataset):
         if isinstance(label, torch.Tensor):
             label = label.item()
         class_indices[label].append(idx)
 
-    # Embaralhar ANTES de particionar (importante para determinismo)
+    # Embaralhar ANTES de particionar (determinismo)
     for indices in class_indices.values():
         random.shuffle(indices)
 
@@ -154,9 +153,7 @@ def partition_data(dataset, mode="iid", noise_ratio=0.0, test_id=0):
             # Combinar dados principais e ruído
             client_indices[client_id] = selected_main + selected_noise
             
-            # CORREÇÃO IMPORTANTE: Embaralhar a ordem final!
-            random.shuffle(client_indices[client_id])  # Esta linha é CRUCIAL!
-    
+            random.shuffle(client_indices[client_id])
 
     # Debug: mostrar distribuição dos dados
     print("\n--- Distribuição de dados por cliente ---")
@@ -171,9 +168,6 @@ def partition_data(dataset, mode="iid", noise_ratio=0.0, test_id=0):
     
     return client_indices
 
-import copy
-# Adicione este debug na função compute_task_similarity
-
 def compute_task_similarity(client_datasets, probe_network, stage="before", client_models=None, test_id=0):
     print(f"\n=== Computando Task2Vec - {stage.upper()} ===")
     
@@ -185,12 +179,12 @@ def compute_task_similarity(client_datasets, probe_network, stage="before", clie
     task_vectors = []
     client_names = [f"Cliente {i+1}" for i in range(len(client_datasets))]
     
-    # DEBUG CORRIGIDO: Amostragem representativa
+    # DEBUG: Amostragem representativa
     print("=== DEBUG: Verificando distribuições dos clientes ===")
     for i, dataset in enumerate(client_datasets):
         class_counts = defaultdict(int)
         
-        # CORREÇÃO: Pegar amostras ALEATÓRIAS, não apenas as primeiras
+        # Pegar amostras aleatórias
         total_dataset_size = len(dataset)
         sample_size = min(1000, total_dataset_size)
         
@@ -286,7 +280,6 @@ def compute_task_similarity(client_datasets, probe_network, stage="before", clie
         else:
             print(f"Cliente {i+1}: ERRO - embedding inválido")
     
-    # Resto da função continua igual...
     # Plot da matriz de similaridade
     task_similarity.plot_distance_matrix(
         task_vectors,
@@ -309,7 +302,6 @@ def compute_task_similarity(client_datasets, probe_network, stage="before", clie
                 
             print(f"Cliente {i+1} vs Cliente {j+1}: {similarity_matrix[i, j]:.4f}")
     
-    # Resto da função (plot) continua igual...
     plt.figure(figsize=(12, 10))
     sns.heatmap(similarity_matrix, annot=True, fmt=".2f", cmap="coolwarm",
                 annot_kws={"size": 8},
@@ -376,10 +368,9 @@ def run_experiment(mode, probe_network, noise_ratio=0.0, test_id=0):
         subset = Subset(train_dataset, client_indices[i])
         client_datasets.append(subset)
     
-    # Medir similaridade ANTES do treinamento federado
+    # Medir similaridade antes do treinamento federado
     task_vectors_before = compute_task_similarity(client_datasets, probe_network, "antes", test_id=test_id)
     
-    # Executar treinamento federado usando a nova API
     print("\n=== Iniciando Treinamento Federado ===")
     
     def client_fn(context: Context) -> Client:
@@ -428,7 +419,7 @@ def run_experiment(mode, probe_network, noise_ratio=0.0, test_id=0):
     return None, None
 
 if __name__ == "__main__":
-    # Definir seeds UMA VEZ AQUI
+    # Definir seeds uma vez
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     random.seed(SEED)
@@ -443,7 +434,7 @@ if __name__ == "__main__":
         ("Noise-25%", "non-iid-noise", 0.25, 4)
     ]
 
-    # Criar a rede probe UMA ÚNICA VEZ
+    # Criar a rede probe
     print("Criando a rede probe para Task2Vec...")
     probe_network_task2vec = get_model('resnet34', pretrained=True, num_classes=10).to(DEVICE)
     

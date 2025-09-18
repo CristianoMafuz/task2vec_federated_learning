@@ -1,0 +1,11 @@
+torch
+torchvision
+flwr[simulation]
+numpy
+pandas
+scikit-learn
+seaborn
+matplotlib
+pyyaml
+tqdm
+medmnist

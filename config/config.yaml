@@ -1,0 +1,51 @@
+# Configuração dos Experimentos Task2Vec + Federated Learning
+
+experiment:
+  name: "task2vec_fl_readiness"
+  output_dir: "./results"
+  seed: 42
+  num_independent_federations: 2  # Número de federações independentes por configuração
+  
+datasets:
+  - name: "cifar10"
+    target_metric: "accuracy"
+    target_threshold: 0.75
+  - name: "femnist"
+    target_metric: "accuracy"
+    target_threshold: 0.70
+  - name: "pathmnist"
+    target_metric: "auc_macro"
+    target_threshold: 0.85
+  - name: "bloodmnist"
+    target_metric: "auc_macro"
+    target_threshold: 0.90
+
+federation:
+  num_clients: [10, 20, 30]
+  alpha_values: [0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0, 5.0]
+  
+fl_training:
+  # num_rounds: 50
+  num_rounds: 20
+  epochs_per_round: 3
+  batch_size: 32
+  learning_rate: 0.01
+  fraction_fit: 1.0
+  fraction_evaluate: 0.5
+  min_fit_clients: 5
+  min_evaluate_clients: 3
+  
+task2vec:
+  probe_network: "resnet34"
+  max_samples: 1000
+  
+readiness:
+  bootstrap_samples: 100
+  confidence_level: 0.95
+  variants: ["cohesion_dispersion", "weighted_sum", "density"]
+  
+hardware:
+  device: "cuda"
+  client_resources:
+    num_cpus: 48
+    num_gpus: 1

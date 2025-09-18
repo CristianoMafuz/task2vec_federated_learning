@@ -54,20 +54,21 @@ O fluxo de trabalho do framework pode ser resumido no seguinte diagrama:
 
 ```mermaid
 graph TD
-    A[1. Datasets dos Clientes] --> B[Task2Vec Analyzer];
-    B --> C[2. Embeddings {z_c}];
-    C --> D[Readiness Calculator];
-    D --> E[3. Readiness Score R(F) e IC];
+    A["1. Datasets dos Clientes"] --> B["Task2Vec Analyzer"];
+    B --> C["2. Embeddings z_c"];
+    C --> D["Readiness Calculator"];
+    D --> E["3. Readiness Score R(F) e IC"];
 
-    A --> F[FL Simulation (Flower)];
-    F --> G[4. Performance Final (AUC/Acc)];
+    A --> F["FL Simulation (Flower)"];
+    F --> G["4. Performance Final (AUC/Acc)"];
 
     subgraph Análise
-        E --> H[Correlação];
+        E --> H["Correlação"];
         G --> H;
     end
     
-    H --> I[5. Relatórios e Gráficos];
+    H --> I["5. Relatórios e Gráficos"];
+
 ```
 
 ## 📁 Estrutura do Repositório

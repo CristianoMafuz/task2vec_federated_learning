@@ -54,18 +54,19 @@ O fluxo de trabalho do framework pode ser resumido no seguinte diagrama:
 
 ```mermaid
 graph TD
-    A[1. Datasets dos Clientes] --> B{Task2Vec Analyzer};
+    A[1. Datasets dos Clientes] --> B[Task2Vec Analyzer];
     B --> C[2. Embeddings {z_c}];
-    C --> D{Readiness Calculator};
+    C --> D[Readiness Calculator];
     D --> E[3. Readiness Score R(F) e IC];
 
-    A --> F{FL Simulation (Flower)};
+    A --> F[FL Simulation (Flower)];
     F --> G[4. Performance Final (AUC/Acc)];
 
     subgraph Análise
-        E --> H{Correlação};
+        E --> H[Correlação];
         G --> H;
     end
+    
     H --> I[5. Relatórios e Gráficos];
 ```
 
@@ -73,23 +74,26 @@ graph TD
 
 ```
 .
-├── config.yaml                 # Arquivo de configuração principal
-├── main.py                     # Ponto de entrada para orquestrar os experimentos
-├── fl_simulation.py            # Lógica para simulação de FL com Flower
-├── task2vec_analysis.py        # Lógica para extração de embeddings e cálculo do R(F)
-├── data_utils.py               # Funções para download e particionamento dos datasets
-├── models.py                   # Definições dos modelos (ex: ResNet34)
-├── utils.py                    # Funções utilitárias (logging, seeds, etc.)
+├── config/
+│   └── config.yaml             # Arquivo de configuração principal
+├── src/
+│   ├── main.py                 # Ponto de entrada para orquestrar os experimentos
+│   ├── fl_simulation.py        # Lógica para simulação de FL com Flower
+│   ├── task2vec_analysis.py    # Lógica para extração de embeddings e cálculo do R(F)
+│   ├── data_utils.py           # Funções para download e particionamento dos datasets
+│   ├── models.py               # Definições dos modelos (ex: ResNet34)
+│   └── utils.py                # Funções utilitárias (logging, seeds, etc.)
 ├── requirements.txt            # Dependências do projeto
 └── results/                    # Diretório para salvar os outputs (CSVs, gráficos, logs)
+
 ```
 
 ## 🚀 Instalação e Configuração
 
 **1. Clone o repositório:**
 ```bash
-git clone [https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git](https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git)
-cd SEU_REPOSITORIO
+git clone https://github.com/CristianoMafuz/task2vec_federated_learning.git
+cd task2vec_federated_learning
 ```
 
 **2. Crie um ambiente virtual (recomendado):**
@@ -181,9 +185,9 @@ A tabela abaixo resume os resultados, mostrando que valores mais altos de `readi
 
 Se você utilizar este código ou a metodologia em sua pesquisa, por favor, cite nosso trabalho.
 ```bibtex
-@article{seu_sobrenome_2025_task2vec,
+@article{Mafuz_2025_task2vec,
   title   = {Task2Vec Readiness: A Pre-Training Diagnostic Framework for Federated Learning},
-  author  = {Seu Nome e Sobrenome and Nome do Professor},
+  author  = {Cristiano Augusto Dias Mafuz and Rodrigo César Pedrosa Silva},
   journal = {Pré-publicação ou Conferência},
   year    = {2025}
 }

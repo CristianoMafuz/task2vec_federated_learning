@@ -33,12 +33,35 @@ class ResultsAnalyzer:
         else:
             self.df = pd.read_csv(self.results_path)
         
-        self.df['dataset'] = self.df['dataset'].astype(str) 
+        
+        self.df['dataset'] = self.df['dataset'].astype(str)
+        # >>> FILTRO POR TAXA DE SUCESSO <<<
+        config_success = (
+            self.df.groupby(['dataset', 'num_clients', 'alpha'])['target_achieved'].mean()
+        )
+
+        # Configurações que passam no threshold (exceto cifar10)
+        valid_configs = config_success[config_success >= -1].index
+        filtered_df = (
+            self.df.set_index(['dataset', 'num_clients', 'alpha'])
+            .loc[valid_configs]
+            .reset_index()
+        )
+
+        # Adiciona de volta o cifar10 (sem filtro)
+        cifar10_df = self.df[self.df['dataset'] == 'cifar10']
+
+        # Concatena resultados
+        self.df = pd.concat([filtered_df, cifar10_df], ignore_index=True)
+        
+        # self.df = self.df.set_index(['dataset','num_clients','alpha']).loc[valid_configs].reset_index()
+
         # Criar diretório para salvar figuras
         self.output_dir = self.results_path.parent / "analysis_alt"
         self.output_dir.mkdir(exist_ok=True)
         
         print(f"Dados carregados: {len(self.df)} experimentos")
+        print(f"Datasets considerados (taxa de sucesso ≥ {1:.0%}): {valid_configs.tolist()}")
         print(f"Datasets: {self.df['dataset'].unique().tolist()}")
         print(f"Alphas: {sorted(self.df['alpha'].unique())}")
         print(f"Num clientes: {sorted(self.df['num_clients'].unique())}")

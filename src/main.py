@@ -32,15 +32,6 @@ import copy
 import torch.nn.functional as F
 import task_similarity
 import seaborn as sns
-import logging
-
-
-from data_utils import DatasetManager, FederatedDataManager
-from models import get_model
-from task2vec_analysis import FederationAnalyzer
-from fl_simulation import FederatedExperimentRunner
-
-
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 SEED = 42
@@ -50,6 +41,7 @@ warnings.filterwarnings('ignore')
 # Importar módulos do projeto
 from utils import (
     set_reproducibility,
+    get_device,
     create_experiment_id,
     save_results,
     log_experiment_metadata,
@@ -57,6 +49,11 @@ from utils import (
     print_progress
 )
 
+
+
+import logging
+import sys
+from datetime import datetime
 
 def setup_logging(log_dir: str):
     """
@@ -113,6 +110,7 @@ def setup_logging(log_dir: str):
     
     logging.info(f"Logging configurado. Saída será salva em: {log_filepath}")
     return log_filepath
+
 
 
 
@@ -279,6 +277,11 @@ def compute_task_similarity(client_datasets, probe_network, num_clients, dataset
     plt.close()
     
     return task_vectors
+
+from data_utils import DatasetManager, FederatedDataManager
+from models import get_model
+from task2vec_analysis import FederationAnalyzer
+from fl_simulation import FederatedExperimentRunner
 
 
 class ExperimentOrchestrator:
@@ -677,14 +680,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Executar experimentos Task2Vec + Federated Learning"
     )
-
     parser.add_argument(
         "--config",
-        type=Path,
-        default="../config/config.yaml",
+        type=str,
+        default="config.yaml",
         help="Caminho para arquivo de configuração"
     )
-    
     parser.add_argument(
         "--test",
         action="store_true",
@@ -692,7 +693,7 @@ def main():
     )
     
     args = parser.parse_args()
-        
+    
     # Valida existência do arquivo de configuração
     if not Path(args.config).exists():
         logging.info(f"Erro: Arquivo de configuração '{args.config}' não encontrado!")
@@ -701,27 +702,27 @@ def main():
     # Modo de teste com configuração reduzida para validação rápida
     if args.test:
         logging.info("MODO DE TESTE ATIVADO - Executando configuração mínima")
-        # Modificar config para teste rápido
+        # Cria versão simplificada da configuração para testes rápidos
         with open(args.config, 'r') as f:
             config = yaml.safe_load(f)
         
+        # Reduz escopo experimental para validação
         config['datasets'] = [config['datasets'][0]]  # Apenas primeiro dataset
-        config['federation']['num_clients'] = [10]  # Apenas 10 clientes
-        config['federation']['alpha_values'] = [0.1, 1.0]  # Apenas 2 alphas
-        config['experiment']['num_independent_federations'] = 2  # Apenas 2 federações
-        config['fl_training']['num_rounds'] = 5  # Menos rodadas
+        config['federation']['num_clients'] = [10]  # Federação pequena
+        config['federation']['alpha_values'] = [0.1, 1.0]  # Extremos de heterogeneidade
+        config['experiment']['num_independent_federations'] = 2  # Poucas repetições
+        config['fl_training']['num_rounds'] = 5  # Convergência rápida
         
-        # Salvar config temporária
+        # Persiste configuração temporária
         test_config_path = "test_config.yaml"
         with open(test_config_path, 'w') as f:
             yaml.dump(config, f)
         
         args.config = test_config_path
     
-    
-    orchestrator = None  # Inicializa como None
+    orchestrator = None  # Inicialização defensiva para cleanup
     try:
-        # Criar e executar orquestrador
+        # Instancia e executa pipeline experimental completo
         orchestrator = ExperimentOrchestrator(args.config)
         orchestrator.run_all_experiments()
         
@@ -732,17 +733,16 @@ def main():
             orchestrator._save_final_results()
             
     except Exception as e:
-        # O nosso `sys.excepthook` já vai pegar o erro fatal, 
-        # mas podemos logar uma mensagem final aqui também.
+        # Hook de exceção captura detalhes, aqui só loga mensagem final
         logging.critical(f"Erro fatal encerrou a execução: {e}")
-        # O traceback completo será logado automaticamente pela função handle_exception.
         sys.exit(1)
     
     finally:
-        # Limpar config de teste se existir
+        # Cleanup de arquivos temporários do modo teste
         if args.test and Path("test_config.yaml").exists():
             os.remove("test_config.yaml")
         logging.info("Execução finalizada.")
+
 
 
 
